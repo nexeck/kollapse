@@ -8,6 +8,7 @@
  * @copyright  (c) 2010 Gabriel Evans
  * @license    http://www.opensource.org/licenses/mit-license.php MIT license
  */
+
 class Kohana_Kollapse_YUI extends Kollapse {
 
 	/**
@@ -34,16 +35,24 @@ class Kohana_Kollapse_YUI extends Kollapse {
 		}
 		elseif (is_executable($bin))
 		{
-			throw new Kohana_Exeption("YUI Compressor at ':location' must be executable",
+			throw new Kohana_Exception("YUI Compressor at ':location' must be executable",
 				array(':location' => $bin));
 		}
 
 		self::$bin = $bin;
 	}
 
+	/**
+	 * Optimize
+	 *
+	 * @param  $data
+	 * @param  $package
+	 * @param  $type
+	 * @return string
+	 */
 	protected function optimize($data, $package, $type)
 	{
 		return $data;
 	}
 
-}
+} // End Kohana_Kollapse_YUI

@@ -31,4 +31,4 @@ abstract class Kohana_Krush_Filter {
 	 */
 	abstract public function parse($data, $type);
 
-}
+} // End Kohana_Krush_Filter

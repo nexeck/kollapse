@@ -26,4 +26,4 @@ class Kohana_Kollapse_Filter_SASS extends Kollapse_Filter {
 		// TODO: implement
 	}
 
-}
+} // End Kohana_Kollapse_Filter_SASS

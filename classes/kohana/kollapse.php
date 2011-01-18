@@ -3,29 +3,45 @@
  * Handles asset packaging of scripts and stylesheets. Also provides helper functions
  * for including assets in views.
  *
+ * MODIFIED: Rafi <justrafi@gmail.com>
+ *
  * @package    Kollapse
  * @author     Gabriel Evans <gabriel@codeconcoction.com>
  * @copyright  (c) 2010 Gabriel Evans
  * @license    http://www.opensource.org/licenses/mit-license.php MIT license
  */
-abstract class Kohana_Kollapse
-{
 
-	// configuration
+abstract class Kohana_Kollapse {
+
+	/**
+	 * @var array|null  Configuration
+	 */
 	protected static $config = NULL;
 
-	// driver instance
+	/**
+	 * @var Kollapse Driver instance
+	 */
 	protected static $driver;
 
-	// filter instances
+	/**
+	 * @var array    Filter instances
+	 */
 	protected static $filters = array();
 
-	// file timestamps
+	/**
+	 * @var array    File timestamps
+	 */
 	protected static $timestamps;
 
 	/**
-	 * Stores configuration locally and instantiates compression driver.
-	 * @return  void
+	 * Stores configuration locally and instantiates compression driver
+	 *
+	 * @static
+	 * @throws Kohana_Exception
+	 * @param  array|null $config
+	 * @param  bool       $driver_instance
+	 * @param  bool       $filter_instance
+	 * @return void
 	 */
 	protected static function init(array $config = NULL, $driver_instance = TRUE, $filter_instance = TRUE)
 	{
@@ -59,7 +75,7 @@ abstract class Kohana_Kollapse
 			throw new Kohana_Exception('Stylesheets path not set');
 		}
 
-		// save config
+		// Save config
 		self::$config = $config;
 
 		if (isset($config['filters']))
@@ -67,19 +83,21 @@ abstract class Kohana_Kollapse
 			foreach ($config['filters'] as $filter)
 			{
 				$filter = 'Kollapse_Filter_'.$filter;
-				// instantiate filter
+				// Instantiate filter
 				self::$filters[$filter] = new $filter;
 			}
 		}
 
+		// Instantiate driver
 		$driver = 'Kollapse_'.$config['driver'];
-		// instantiate driver
 		self::$driver = new $driver($config);
 
 	}
 
 	/**
 	 * Stores configuration and makes class publicly uninstantiable.
+	 *
+	 * @param array|null $config
 	 */
 	protected function __construct(array $config = NULL)
 	{
@@ -95,6 +113,12 @@ abstract class Kohana_Kollapse
 
 	/**
 	 * Runs filters on provided data.
+	 *
+	 * @static
+	 * @throws Kohana_Exception
+	 * @param  string $data
+	 * @param  string $type
+	 * @return string
 	 */
 	protected static function filter($data, $type)
 	{
@@ -116,12 +140,13 @@ abstract class Kohana_Kollapse
 	}
 
 	/**
-	 * Creates script package link.
+	 * Creates script package link
+	 *
+	 * @uses    HTML::script
 	 * @param   array|string  group(s) of assets to link
 	 * @param   array         additional attributes
 	 * @param   boolean       include file timestamp
 	 * @return  string
-	 * @uses    HTML::script
 	 */
 	public static function scripts($groups, array $attributes = NULL, $timestamp = TRUE)
 	{
@@ -141,18 +166,24 @@ abstract class Kohana_Kollapse
 		{
 			foreach ($groups as $group)
 			{
-				foreach (self::$config['javascripts'][$group] as $asset)
+				$assets = self::search_wildcard(self::$config['javascripts'][$group]);
+				foreach ($assets as $asset)
 				{
+					$file = pathinfo($asset);
+					$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
+					if ($path === FALSE)
+					{
+						throw new Kohana_Exception('Cannot find file \':basepath\'',
+							array(':basepath' => $file['dirname']));
+					}
 					$asset_timestamp = '';
 
 					if ($timestamp)
 					{
-						$asset_timestamp = self::timestamp($asset);
+						$asset_timestamp = self::timestamp($path);
 					}
 
-					$asset = substr_replace($asset, '', 0, strlen(DOCROOT));
-
-					$packages .= HTML::script($asset.'?'.$asset_timestamp)."\n";
+					$packages .= HTML::script($asset.'?'.$asset_timestamp, $attributes)."\n";
 				}
 			}
 		}
@@ -160,7 +191,9 @@ abstract class Kohana_Kollapse
 		{
 			foreach ($groups as $group)
 			{
-				$packages .= HTML::script(self::package($group, 'javascripts', $timestamp), $attributes)."\n";
+				$packages .= HTML::script(
+					self::package($group, 'javascripts', $timestamp), $attributes
+				)."\n";
 			}
 		}
 
@@ -168,12 +201,13 @@ abstract class Kohana_Kollapse
 	}
 
 	/**
-	 * Creates stylesheet package link.
+	 * Creates stylesheet package link
+	 *
+	 * @uses    HTML::style
 	 * @param   array|string   asset group(s) to link
 	 * @param   array          additional attributes
 	 * @param   boolean        include file timestamp
 	 * @return  string
-	 * @uses    HTML::style
 	 */
 	public static function styles($groups, $attributes = array(), $timestamp = TRUE)
 	{
@@ -193,18 +227,25 @@ abstract class Kohana_Kollapse
 		{
 			foreach ($groups as $group)
 			{
-				foreach (self::$config['stylesheets'][$group] as $asset)
+				$assets = self::search_wildcard(self::$config['stylesheets'][$group]);
+				foreach ($assets as $asset)
 				{
+					$file = pathinfo($asset);
+					$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
+					if ($path === FALSE)
+					{
+						throw new Kohana_Exception('Cannot find file \':basepath\'',
+							array(':basepath' => $file['dirname']));
+					}
+
 					$asset_timestamp = '';
 
 					if ($timestamp)
 					{
-						$asset_timestamp = self::timestamp($asset);
+						$asset_timestamp = self::timestamp($path);
 					}
 
-					$asset = substr_replace($asset, '', 0, strlen(DOCROOT));
-
-					$packages .= HTML::style($asset.'?'.$asset_timestamp)."\n";
+					$packages .= HTML::style($asset.'?'.$asset_timestamp, $attributes)."\n";
 				}
 			}
 		}
@@ -212,18 +253,55 @@ abstract class Kohana_Kollapse
 		{
 			foreach ($groups as $group)
 			{
-				$packages .= HTML::style(self::package($group, 'stylesheets', $timestamp), $attributes)."\n";
+				$packages .= HTML::style(
+					self::package($group, 'stylesheets', $timestamp), $attributes
+				)."\n";
 			}
 		}
 
 		return $packages;
 	}
 
+	/**
+	 * Filters out wildcards and expose files
+	 *
+	 * @static
+	 * @param  array $group
+	 * @return array
+	 */
+	protected static function search_wildcard(array $group)
+	{
+		foreach ($group as $index => $asset)
+		{
+			$file = pathinfo($asset);
+			if ($file['filename'] == '*')
+			{
+				unset($group[$index]);
+				$files = Kohana::list_files($file['dirname']);
+				foreach ($files as $rel => $abs)
+				{
+					$group[] = str_replace('\\', '/', $rel);
+				}
+			}
+		}
+		return $group;
+	}
+
+	/**
+	 * Package files
+	 * 
+	 * @static
+	 * @throws Kohana_Exception
+	 * @param  $group
+	 * @param  $type
+	 * @param  bool $timestamp
+	 * @return string
+	 */
 	public static function package($group, $type, $timestamp = TRUE)
 	{
 		if ( ! isset(self::$config[$type][$group]))
 		{
-			throw new Kohana_Exception("Asset group ':group' does not exist",
+			throw new Kohana_Exception('Asset group \':group\' does not exist',
 				array(':group' => $group));
 		}
 
@@ -238,7 +316,7 @@ abstract class Kohana_Kollapse
 				$extension = '.css';
 			break;
 			default:
-				throw new Kohana_Exception("Invalid asset type ':type'",
+				throw new Kohana_Exception('Invalid asset type \':type\'',
 					array(':type' => $type));
 		}
 
@@ -256,7 +334,14 @@ abstract class Kohana_Kollapse
 	}
 
 	/**
-	 * Rebuild an outdated or non-existent package.
+	 * Rebuild package
+	 *
+	 * @static
+	 * @throws Kohana_Exception
+	 * @param  string $package
+	 * @param  array  $assets
+	 * @param  string $type
+	 * @return void
 	 */
 	public static function build_package($package, array $assets, $type)
 	{
@@ -275,16 +360,19 @@ abstract class Kohana_Kollapse
 		}
 
 		$data = '';
-
+		$assets = self::search_wildcard($assets);
 		foreach ($assets as $asset)
 		{
-			if ( ! is_file($asset))
+			$file = pathinfo($asset);
+			$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
+
+			if ( ! is_file($path))
 			{
 				throw new Kohana_Exception(":type asset ':file' does not exist",
 					array(':type' => ucfirst($type), ':file' => $asset));
 			}
 
-			$data .= file_get_contents($asset)."\n";
+			$data .= file_get_contents($path)."\n";
 		}
 
 		$data = self::filter($data, $type);
@@ -299,19 +387,42 @@ abstract class Kohana_Kollapse
 		file_put_contents($package, $data);
 	}
 
+	/**
+	 * Abstract optimize for drivers
+	 *
+	 * @abstract
+	 * @param  $data
+	 * @param  $package
+	 * @param  $type
+	 * @return void
+	 */
 	abstract protected function optimize($data, $package, $type);
 
 	/**
-	 * Check whether the specified package is outdated.
+	 * Check whether the specified package is outdated
+	 *
+	 * @static
+	 * @param  string $package
+	 * @param  array  $assets
+	 * @return bool
 	 */
 	public static function package_outdated($package, $assets)
 	{
 		$outdated = FALSE;
 		$latest = 0;
 
+		$assets = self::search_wildcard($assets);
 		foreach ($assets as $asset)
 		{
-			$timestamp = self::timestamp($asset);
+			$file = pathinfo($asset);
+			$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
+			if ($path === FALSE)
+			{
+				throw new Kohana_Exception('Cannot find file \':basepath\'',
+					array(':basepath' => $file['dirname']));
+			}
+
+			$timestamp = self::timestamp($path);
 
 			if ($timestamp > $latest)
 			{
@@ -330,7 +441,12 @@ abstract class Kohana_Kollapse
 	}
 
 	/**
-	 * Get the last modified timestamp for a file.
+	 * Get the last modified timestamp for a file
+	 *
+	 * @static
+	 * @throws Kohana_Exception
+	 * @param  string  $file  File path
+	 * @return int
 	 */
 	protected static function timestamp($file)
 	{
@@ -349,4 +465,4 @@ abstract class Kohana_Kollapse
 		return self::$timestamps[$file];
 	}
 
-}
+} // End Kohana_Kollapse

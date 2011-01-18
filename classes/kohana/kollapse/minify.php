@@ -8,10 +8,13 @@
  * @copyright  (c) 2010 Gabriel Evans
  * @license    http://www.opensource.org/licenses/mit-license.php MIT license
  */
+
 class Kohana_Kollapse_Minify extends Kollapse {
 
 	/**
-	 * Includes needed libraries (CSSMin & JSMin).
+	 * Includes needed libraries (CSSMin & JSMin)
+	 *
+	 * @param array $config
 	 */
 	protected function __construct(array $config)
 	{
@@ -21,6 +24,12 @@ class Kohana_Kollapse_Minify extends Kollapse {
 		require_once Kohana::find_file('vendor/jsmin', 'jsmin');
 	}
 
+	/**
+	 * @param  $data
+	 * @param  $package
+	 * @param  $type
+	 * @return string
+	 */
 	protected function optimize($data, $package, $type)
 	{
 		switch ($type)
@@ -36,4 +45,4 @@ class Kohana_Kollapse_Minify extends Kollapse {
 		return $data;
 	}
 
-}
+} // End Kohana_Kollapse_Minify

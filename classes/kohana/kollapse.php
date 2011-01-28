@@ -171,13 +171,9 @@ abstract class Kohana_Kollapse {
 				{
 					$file = pathinfo($asset);
 					$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
-					if ($path === FALSE)
-					{
-						throw new Kohana_Exception('Cannot find file \':basepath\'',
-							array(':basepath' => $file['dirname']));
-					}
-					$asset_timestamp = '';
+					if ($path === FALSE) continue;
 
+					$asset_timestamp = '';
 					if ($timestamp)
 					{
 						$asset_timestamp = self::timestamp($path);
@@ -232,14 +228,9 @@ abstract class Kohana_Kollapse {
 				{
 					$file = pathinfo($asset);
 					$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
-					if ($path === FALSE)
-					{
-						throw new Kohana_Exception('Cannot find file \':basepath\'',
-							array(':basepath' => $file['dirname']));
-					}
+					if ($path === FALSE) continue;
 
 					$asset_timestamp = '';
-
 					if ($timestamp)
 					{
 						$asset_timestamp = self::timestamp($path);
@@ -365,13 +356,7 @@ abstract class Kohana_Kollapse {
 		{
 			$file = pathinfo($asset);
 			$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
-
-			if ( ! is_file($path))
-			{
-				throw new Kohana_Exception(":type asset ':file' does not exist",
-					array(':type' => ucfirst($type), ':file' => $asset));
-			}
-
+			if ( ! is_file($path)) continue;
 			$data .= file_get_contents($path)."\n";
 		}
 
@@ -416,14 +401,9 @@ abstract class Kohana_Kollapse {
 		{
 			$file = pathinfo($asset);
 			$path = Kohana::find_file($file['dirname'], $file['filename'], $file['extension']);
-			if ($path === FALSE)
-			{
-				throw new Kohana_Exception('Cannot find file \':basepath\'',
-					array(':basepath' => $file['dirname']));
-			}
+			if ($path === FALSE) continue;
 
 			$timestamp = self::timestamp($path);
-
 			if ($timestamp > $latest)
 			{
 				// current asset is newest

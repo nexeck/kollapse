@@ -254,7 +254,7 @@ abstract class Kohana_Kollapse {
 	}
 
 	/**
-	 * Filters out wildcards and expose files
+	 * Filters out wildcards and expose files, include files in nested folders
 	 *
 	 * @static
 	 * @param  array $group
@@ -262,17 +262,44 @@ abstract class Kohana_Kollapse {
 	 */
 	protected static function search_wildcard(array $group)
 	{
-		foreach ($group as $index => $asset)
+		for ($i = 0; $i < count($group); $i++)
 		{
-			$file = pathinfo($asset);
+			$file = pathinfo($group[$i]);
 			if ($file['filename'] == '*')
 			{
-				unset($group[$index]);
 				$files = Kohana::list_files($file['dirname']);
-				foreach ($files as $rel => $abs)
-				{
-					$group[] = str_replace('\\', '/', $rel);
-				}
+				// Flatten nested folders recursively
+				$files = self::_collect_files($files);
+				// Replace key in $i with filtered $files
+				array_splice($group, $i, 1, $files);
+				// Restart loop
+				$i = 0;
+				continue;
+			}
+		}
+		return $group;
+	}
+
+	/**
+	 * Recursively collect files from nested array
+	 *
+	 * @static
+	 * @param  array $group  Group of assets
+	 * @param  array $files  Files discovered by Kohana::list_files
+	 * @return array
+	 */
+	private static function _collect_files(array $files)
+	{
+		$group = array();
+		foreach ($files as $i => $j)
+		{
+			if (is_array($j))
+			{
+				$group = array_combine($group, self::_collect_files($j));
+			}
+			else
+			{
+				$group[] = str_replace('\\', '/', $i);
 			}
 		}
 		return $group;
